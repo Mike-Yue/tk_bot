@@ -105,7 +105,7 @@ async def on_message(message):
                 elif member.tarkov_name.casefold() == word and killer_found:
                     killee_found = True
                     killee = member.tarkov_name
-                    killee_discord_id = member.discord_id
+                    killee_discord_id = str(member.discord_id)
                     break
                 else:
                     pass

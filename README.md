@@ -12,7 +12,9 @@ Message me to ask for the discord token, I'll have to come up with a better way 
 
 	- Currently on an AWS T2.mico EC2 instance
 
-2: Connect to a DB (probably Postgres?) so that data is persisted even when bot is offline
+2: ~~Connect to a DB (probably Postgres?) so that data is persisted even when bot is offline~~
+
+	- Set up with DynamoDB
 
 3: Improve image processing so that OCR can recognize screenshot text better
 
