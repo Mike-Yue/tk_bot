@@ -8,7 +8,9 @@ Create your own python 3 virtual env, and then run `pip install -r requirements.
 Message me to ask for the discord token, I'll have to come up with a better way to share the discord token in the future
 
 ## Future Goals
-1: Host on an AWS server so it's up 24/7
+1: ~~Host on an AWS server so it's up 24/7~~
+
+	- Currently on an AWS T2.mico EC2 instance
 
 2: Connect to a DB (probably Postgres?) so that data is persisted even when bot is offline
 
@@ -22,4 +24,15 @@ Message me to ask for the discord token, I'll have to come up with a better way 
 
 7: Cache list of PMC members...currently the list is refreshed everytime the bot is mentioned, which is inefficient as the list doesn't change often
 
+8: ~~Set up logging~~
+
+	- Currently logging to bot_logs.log of the root dir of the project
+
 And many more that I probably forgot to mention here
+
+## AWS Server
+The bot is kept running 24/7 via **Supervisorctl**. 
+
+The program configuration file for this teamkill bot is located at `/etc/supervisor/conf.d/TK_bot.conf`
+
+If updates are made to the `TK_bot.conf` file, remember to run `sudo supervisorctl reread && sudo supervisorctl update` to reload the config file and update.

@@ -53,7 +53,7 @@ async def message_validation(message):
 
 @client.event
 async def on_ready():
-    logger.info("Hello there")
+    logger.info(f'{client.user} has connected to Discord!')
     print(f'{client.user} has connected to Discord!')
 
 @client.event
