@@ -5,12 +5,20 @@ import cv2
 import pytesseract
 import image_preprocessing
 import user
+import pathlib
+import logging
+import logging.config
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 #Need this to retrieve members from server
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
+cur_dir = pathlib.Path().absolute()
+
+logging.basicConfig(filename='bot_logs.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 
 #Current override of discord names to tarkov names until I implement a DB to remember it
 discord_to_tarkov_name = {
@@ -45,7 +53,7 @@ async def message_validation(message):
 
 @client.event
 async def on_ready():
-    
+    logger.info("Hello there")
     print(f'{client.user} has connected to Discord!')
 
 @client.event
@@ -59,8 +67,8 @@ async def on_message(message):
         if validated_message is None:
             return
 
-        downloaded_img = await validated_message.save('/Users/mikeyue/Pictures/temp.png')
-        img = cv2.imread('/Users/mikeyue/Pictures/temp.png')
+        downloaded_img = await validated_message.save(str(cur_dir) + "/tmp/pic.png")
+        img = cv2.imread(str(cur_dir) + "/tmp/pic.png")
 
         # upscale image for better OCR results
         scale_percent = 500 # percent of original size    

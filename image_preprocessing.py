@@ -1,7 +1,11 @@
 import cv2
 import pytesseract
+import logging
+
+logger = logging.getLogger(__name__)
 
 def grayscale(image):
+    logger.info('Grayscaling image')
     return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 def blur(image):

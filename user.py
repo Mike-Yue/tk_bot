@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 class TarkovProfile:
 
 	def __init__(self, discord_user, tarkov_name=None):
@@ -6,6 +10,7 @@ class TarkovProfile:
 		if tarkov_name:
 			self.tarkov_name = tarkov_name
 		else:
+			logger.warning('User %s has differing discord and tarkov usernames', self.discord_name)
 			self.tarkov_name = discord_user.name
 
 	def update_tarkov_name(self, tarkov_name) -> None:
