@@ -115,8 +115,9 @@ async def on_message(message):
         logger.info(confirmed_kill_text)
         try:
             table = dynamodb.Table(str(killer_discord_id))
-            response = table.put_item(
+            table.put_item(
                 Item={
+                    'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
                     'discord_id': killee_discord_id,
                     'tarkov_name': killee
                 }
