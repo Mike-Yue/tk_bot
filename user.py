@@ -8,9 +8,9 @@ class TarkovProfile:
 		self.discord_id = discord_user.id
 		self.discord_name = discord_user.name
 		if tarkov_name:
+			logger.warning('User %s has differing discord and tarkov usernames', self.discord_name)
 			self.tarkov_name = tarkov_name
 		else:
-			logger.warning('User %s has differing discord and tarkov usernames', self.discord_name)
 			self.tarkov_name = discord_user.name
 
 	def update_tarkov_name(self, tarkov_name) -> None:

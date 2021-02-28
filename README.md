@@ -36,3 +36,5 @@ The bot is kept running 24/7 via **Supervisorctl**.
 The program configuration file for this teamkill bot is located at `/etc/supervisor/conf.d/TK_bot.conf`
 
 If updates are made to the `TK_bot.conf` file, remember to run `sudo supervisorctl reread && sudo supervisorctl update` to reload the config file and update.
+
+To restart the bot after pulling in the most recent changes, run `sudo supervisorctl restart tk_bot`
