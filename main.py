@@ -8,6 +8,8 @@ import user
 import pathlib
 import logging
 import logging.config
+import boto3
+from botocore.exceptions import ClientError
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 
@@ -18,6 +20,8 @@ cur_dir = pathlib.Path().absolute()
 
 logging.basicConfig(filename='bot_logs.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
 
 
 #Current override of discord names to tarkov names until I implement a DB to remember it
@@ -97,9 +101,11 @@ async def on_message(message):
                 if member.tarkov_name.casefold() == word and not killer_found:
                     killer_found = True
                     killer = member.tarkov_name
+                    killer_discord_id = member.discord_id
                 elif member.tarkov_name.casefold() == word and killer_found:
                     killee_found = True
                     killee = member.tarkov_name
+                    killee_discord_id = member.discord_id
                     break
                 else:
                     pass
@@ -107,6 +113,18 @@ async def on_message(message):
                 break
         confirmed_kill_text = "Confirmed: {} killed {}".format(killer, killee)
         logger.info(confirmed_kill_text)
+        try:
+            table = dynamodb.Table(str(killer_discord_id))
+            response = table.put_item(
+                Item={
+                    'discord_id': killee_discord_id,
+                    'tarkov_name': killee
+                }
+            )
+        except ClientError as e:
+            logger.error(e.response['Error']['Message'])
+        except Exception as e:
+            logger.error(e)
         await message.channel.send(confirmed_kill_text)
 
 
