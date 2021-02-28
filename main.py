@@ -10,6 +10,8 @@ import logging
 import logging.config
 import boto3
 from botocore.exceptions import ClientError
+from datetime import datetime
+
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 
