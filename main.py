@@ -80,7 +80,7 @@ async def on_message(message):
         if validated_message is None:
             return
         
-        member_list = {member.tarkov_name: member for member in tarkov_members()}
+        member_dict = {member.tarkov_name: member for member in tarkov_members()}
 
 
         downloaded_img = await validated_message.save(str(cur_dir) + "/tmp/pic.png")
@@ -115,23 +115,21 @@ async def on_message(message):
         # Crazy how with all the image preprocessing simply upscaling then inverting it makes the most progress
         text = pytesseract.image_to_string(invertImg, lang='eng', config='--psm 11').casefold()
         logger.info("{}: {}".format("Image to text dump", text))
-        # Algorithm to find who killed who
-        # Definitely needs to be improved, this is just a non-scalable brute force solution
 
-        username_filter = '|'.join(member_list.keys())
+        username_filter = '|'.join(member_dict.keys())
 
         names = re.findall(username_filter, text, flags=re.IGNORECASE)
 
-        if (len(names) == 2): 
+        if (len(names) == 2):  # [killer.tarkov_name, killee.tarkov_name]
             confirmed_kill_text = "Confirmed: {} killed {}".format(names[0], names[1])
             logger.info(confirmed_kill_text)
             try:
-                table = dynamodb.Table(str(member_list[names[0]].discord_id))
+                table = dynamodb.Table(str(member_dict[names[0]].discord_id))
                 table.put_item(
                     Item={
                         'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                        'discord_id': member_list[names[1]].discord_id,
-                        'tarkov_name': names[1]
+                        'discord_id': member_dict[names[1]].discord_id, #Killee.discord_id 
+                        'tarkov_name': names[1] #Killee.tarkov_name
                     }
                 )
             except ClientError as e:
