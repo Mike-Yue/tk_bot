@@ -3,6 +3,7 @@ import os
 import discord
 import cv2
 import pytesseract
+import re
 import image_preprocessing
 import user
 import pathlib
@@ -79,7 +80,7 @@ async def on_message(message):
         if validated_message is None:
             return
         
-        member_list = tarkov_members()
+        member_list = {member.tarkov_name: member for member in tarkov_members()}
 
 
         downloaded_img = await validated_message.save(str(cur_dir) + "/tmp/pic.png")
@@ -116,33 +117,21 @@ async def on_message(message):
         logger.info("{}: {}".format("Image to text dump", text))
         # Algorithm to find who killed who
         # Definitely needs to be improved, this is just a non-scalable brute force solution
-        killer_found = False
-        killee_found = False
-        for word in text.split(' '):
-            for member in member_list:
-                if member.tarkov_name.casefold() == word and not killer_found:
-                    killer_found = True
-                    killer = member.tarkov_name
-                    killer_discord_id = member.discord_id
-                elif member.tarkov_name.casefold() == word and killer_found:
-                    killee_found = True
-                    killee = member.tarkov_name
-                    killee_discord_id = str(member.discord_id)
-                    break
-                else:
-                    pass
-            if killee_found:
-                break
-        if killer_found and killee_found:
-            confirmed_kill_text = "Confirmed: {} killed {}".format(killer, killee)
+
+        username_filter = '|'.join(member_list.keys())
+
+        names = re.findall(username_filter, text, flags=re.IGNORECASE)
+
+        if (len(names) == 2): 
+            confirmed_kill_text = "Confirmed: {} killed {}".format(names[0], names[1])
             logger.info(confirmed_kill_text)
             try:
-                table = dynamodb.Table(str(killer_discord_id))
+                table = dynamodb.Table(str(member_list[names[0]].discord_id))
                 table.put_item(
                     Item={
                         'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                        'discord_id': killee_discord_id,
-                        'tarkov_name': killee
+                        'discord_id': member_list[names[1]].discord_id,
+                        'tarkov_name': names[1]
                     }
                 )
             except ClientError as e:
@@ -150,7 +139,6 @@ async def on_message(message):
             except Exception as e:
                 logger.error(e)
             await message.channel.send(confirmed_kill_text)
-
 
 client.run(TOKEN)
 
