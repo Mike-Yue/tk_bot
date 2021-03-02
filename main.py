@@ -35,23 +35,18 @@ else:
     sys.exit("Invalid command line arg provided")
 
 
-#Current override of discord names to tarkov names until I implement a DB to remember it
-discord_to_tarkov_name = {
-    "deadfox0": "Hyakulol",
-    "ZerO_0": "ArcZerO",
-    "Pokguy604": "Pokguy",
-    # Fucking Sheridan with his weirdass unicode discord name smh my head
-    "{}{}".format(chr(734), chr(734)): "YunginCSTTV"
-}
-
-
 def tarkov_members():
     member_list = []
+    table = dynamodb.Table("DiscordToTarkovName")
     for member in client.guilds[0].get_role(742241625727696957).members:
-        if member.name in discord_to_tarkov_name:
-            member_list.append(user.TarkovProfile(member, discord_to_tarkov_name[member.name]))
-        else:
-            member_list.append(user.TarkovProfile(member))
+        try:
+            response = table.get_item(Key={'discord_id': str(member.id)})
+            tarkov_name = response['Item']['tarkov_name']
+            logger.info("Pulled tarkov username {} for discord user {}".format(tarkov_name, member.name))
+        except ClientError as e:
+            logger.error(e.response['Error']['Message'])
+            tarkov_name = member.name
+        member_list.append(user.TarkovProfile(member, tarkov_name))
     return member_list
 
 async def message_validation(message):
@@ -67,6 +62,7 @@ async def message_validation(message):
 
 @client.event
 async def on_ready():
+    test = tarkov_members()
     logger.info(f'{client.user} has connected to Discord!')
     print(f'{client.user} has connected to Discord!')
 
