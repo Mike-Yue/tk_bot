@@ -9,10 +9,12 @@ import pathlib
 import logging
 import logging.config
 import boto3
+import sys
 from botocore.exceptions import ClientError
 from datetime import datetime
+from dotenv import load_dotenv, find_dotenv
 
-
+load_dotenv(find_dotenv())
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 #Need this to retrieve members from server
@@ -23,7 +25,12 @@ cur_dir = pathlib.Path().absolute()
 logging.basicConfig(filename='bot_logs.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
+if len(sys.argv) == 1:
+    dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
+elif sys.argv[1] == "test":
+    dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
+else:
+    sys.exit("Invalid command line arg provided")
 
 
 #Current override of discord names to tarkov names until I implement a DB to remember it
@@ -93,7 +100,7 @@ async def on_message(message):
         # cv2.waitKey()
         # Crazy how with all the image preprocessing simply upscaling then inverting it makes the most progress
         text = pytesseract.image_to_string(invertImg, lang='eng', config='--psm 11').casefold()
-
+        logger.info("{}: {}".format("Image to text dump", text))
         # Algorithm to find who killed who
         # Definitely needs to be improved, this is just a non-scalable brute force solution
         killer_found = False
