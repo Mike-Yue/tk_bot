@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 if len(sys.argv) == 1:
     dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
 elif sys.argv[1] == "test":
-    dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
+    dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000", region_name='us-west-2')
 else:
     sys.exit("Invalid command line arg provided")
 
