@@ -1,15 +1,19 @@
 import cv2
 import pytesseract
 import logging
+import platform
 
 logger = logging.getLogger(__name__)
+
+if platform.system() == 'Windows':
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 def grayscale(image):
     logger.info('Grayscaling image')
     return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 def blur(image):
-    return cv2.medianBlur(image,3)
+    return cv2.GaussianBlur(image,(5,5),0)
 
 def scale_image(image, scale_percent):
     width = int(image.shape[1] * scale_percent / 100)
