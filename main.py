@@ -10,6 +10,7 @@ import logging
 import logging.config
 import boto3
 import sys
+import numpy as np
 from botocore.exceptions import ClientError
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
@@ -79,6 +80,8 @@ async def on_message(message):
             return
         
         member_list = tarkov_members()
+
+
         downloaded_img = await validated_message.save(str(cur_dir) + "/tmp/pic.png")
         img = cv2.imread(str(cur_dir) + "/tmp/pic.png")
 
@@ -88,12 +91,22 @@ async def on_message(message):
 
         # Grayscale then apply Otsu's threshold 
         # https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_thresholding/py_thresholding.html#otsus-binarization
-        gray = image_preprocessing.grayscale(resized)
-        invertImg = cv2.bitwise_not(gray)
-        thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+        
 
-        # Morph open to remove noise
-        result = image_preprocessing.morph_open(thresh)
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        clahe_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+        grayimg1 = cv2.cvtColor(clahe_bgr, cv2.COLOR_BGR2GRAY)
+        mask2 = cv2.threshold(grayimg1 , 220, 255, cv2.THRESH_BINARY)[1]
+        result2 = cv2.inpaint(img, mask2, 0.1, cv2.INPAINT_TELEA)
+        
+        gray = image_preprocessing.grayscale(result2)
+        invertImg = cv2.bitwise_not(gray)
+        cv2.imwrite(str(cur_dir) + "/tmp/processed.png", invertImg)
+
+        # thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
+        # # Morph open to remove noise
+        # result = image_preprocessing.morph_open(thresh)
 
         logger.info("Image loaded successfully")
         # cv2.imshow('URL Image', invertImg)
@@ -120,22 +133,23 @@ async def on_message(message):
                     pass
             if killee_found:
                 break
-        confirmed_kill_text = "Confirmed: {} killed {}".format(killer, killee)
-        logger.info(confirmed_kill_text)
-        try:
-            table = dynamodb.Table(str(killer_discord_id))
-            table.put_item(
-                Item={
-                    'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                    'discord_id': killee_discord_id,
-                    'tarkov_name': killee
-                }
-            )
-        except ClientError as e:
-            logger.error(e.response['Error']['Message'])
-        except Exception as e:
-            logger.error(e)
-        await message.channel.send(confirmed_kill_text)
+        if killer_found and killee_found:
+            confirmed_kill_text = "Confirmed: {} killed {}".format(killer, killee)
+            logger.info(confirmed_kill_text)
+            try:
+                table = dynamodb.Table(str(killer_discord_id))
+                table.put_item(
+                    Item={
+                        'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                        'discord_id': killee_discord_id,
+                        'tarkov_name': killee
+                    }
+                )
+            except ClientError as e:
+                logger.error(e.response['Error']['Message'])
+            except Exception as e:
+                logger.error(e)
+            await message.channel.send(confirmed_kill_text)
 
 
 client.run(TOKEN)
