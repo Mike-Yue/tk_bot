@@ -143,3 +143,4 @@ cython_debug/
 *.pem
 tmp/
 tk_bot.ppk
+.vscode/
