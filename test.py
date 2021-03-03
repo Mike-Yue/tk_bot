@@ -1,5 +1,8 @@
 import glob 
 import re
+import cv2
+import image_preprocessing
+import pytesseract
 
 def get_killer_and_killee(image_path):
     killer_and_killee = image_path.split('/')[2].split('.')[0]
@@ -17,11 +20,15 @@ def build_usernames(image_paths):
 images = glob.glob('./test/*')
 username_filter = '|'.join(build_usernames(images))
 
-for image in images: 
-    text_results = " " # Needs Modularized Image processing function here
-    result = re.findall(username_filter, text_results, filter=re.IGNORECASE)
-    truth = get_killer_and_killee(image)
+for image_path in images: 
+    image = cv2.imread(image_path)
+    image = image_preprocessing.preprocess(image)
+    text_results = pytesseract.image_to_string(image, lang='eng', config='--psm 11').casefold()
+    result = re.findall(username_filter, text_results, flags=re.IGNORECASE)
+
+
+    truth = get_killer_and_killee(image_path)
     if (len(result) == 2 and result[0] == truth[0] and result[1] == truth[1]): 
-        print("{} - PASSED".format(image.split('/')[-1])) 
+        print("{} - PASSED".format(image_path.split('/')[-1])) 
     else: 
-        print("{} - FAILED".format(image.split('/')[-1])) 
+        print("{} - FAILED".format(image_path.split('/')[-1])) 
