@@ -82,38 +82,17 @@ async def on_message(message):
         
         member_dict = {member.tarkov_name: member for member in tarkov_members()}
 
-
         downloaded_img = await validated_message.save(str(cur_dir) + "/tmp/pic.png")
         img = cv2.imread(str(cur_dir) + "/tmp/pic.png")
-
-        # upscale image for better OCR results
-        scale_percent = 500 # percent of original size    
-        resized = image_preprocessing.scale_image(img, scale_percent)
-
-        # Grayscale then apply Otsu's threshold 
-        # https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_thresholding/py_thresholding.html#otsus-binarization
-        
-
-        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-        clahe_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
-        grayimg1 = cv2.cvtColor(clahe_bgr, cv2.COLOR_BGR2GRAY)
-        mask2 = cv2.threshold(grayimg1 , 220, 255, cv2.THRESH_BINARY)[1]
-        result2 = cv2.inpaint(img, mask2, 0.1, cv2.INPAINT_TELEA)
-        
-        gray = image_preprocessing.grayscale(result2)
-        invertImg = cv2.bitwise_not(gray)
-        cv2.imwrite(str(cur_dir) + "/tmp/processed.png", invertImg)
-
-        # thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-
-        # # Morph open to remove noise
-        # result = image_preprocessing.morph_open(thresh)
-
         logger.info("Image loaded successfully")
-        # cv2.imshow('URL Image', invertImg)
-        # cv2.waitKey()
-        # Crazy how with all the image preprocessing simply upscaling then inverting it makes the most progress
-        text = pytesseract.image_to_string(invertImg, lang='eng', config='--psm 11').casefold()
+
+        # Preprocess image for increased accuracy
+        processed = image_preprocessing.preprocess(img)
+
+        # Save image for viewing purposes
+        cv2.imwrite(str(cur_dir) + "/tmp/processed.png", processed)
+
+        text = pytesseract.image_to_string(processed, lang='eng', config='--psm 11').casefold()
         logger.info("{}: {}".format("Image to text dump", text))
 
         username_filter = '|'.join(member_dict.keys())

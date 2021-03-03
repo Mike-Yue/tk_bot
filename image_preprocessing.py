@@ -38,3 +38,32 @@ def morph_open(image):
     result = 255 - opening
     result = cv2.GaussianBlur(result, (3,3), 0)
     return result
+
+# Contrast Limited Adaptive Histogram Equalization
+def clahe(image):
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    clahe_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+    grayimg1 = cv2.cvtColor(clahe_bgr, cv2.COLOR_BGR2GRAY)
+    mask2 = cv2.threshold(grayimg1 , 220, 255, cv2.THRESH_BINARY)[1]
+    result2 = cv2.inpaint(image, mask2, 0.1, cv2.INPAINT_TELEA)
+    return result2
+
+# Applies a series of filters to enhance OCR accuracy
+def preprocess(image):
+    # upscale image for better OCR results
+    scale_percent = 500 # percent of original size    
+    resized = scale_image(image, scale_percent)
+    # equalize image to reduce glare and glow
+    equalized = clahe(resized)
+    # grayscale image
+    gray = grayscale(equalized)
+    # invert image
+    invertImg = cv2.bitwise_not(gray)
+    return invertImg
+
+# Grayscale then apply Otsu's threshold 
+# https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_thresholding/py_thresholding.html#otsus-binarization
+# thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
+    # # Morph open to remove noise
+    # result = image_preprocessing.morph_open(thresh)
