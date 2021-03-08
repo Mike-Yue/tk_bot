@@ -51,7 +51,7 @@ def clahe(image):
 # Applies a series of filters to enhance OCR accuracy
 def preprocess(image):
     # upscale image for better OCR results
-    scale_percent = 500 # percent of original size    
+    scale_percent = 200 # percent of original size    
     resized = scale_image(image, scale_percent)
     # equalize image to reduce glare and glow
     equalized = clahe(resized)

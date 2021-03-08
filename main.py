@@ -41,7 +41,7 @@ def tarkov_members():
     for member in client.guilds[0].get_role(742241625727696957).members:
         try:
             response = table.get_item(Key={'discord_id': str(member.id)})
-            tarkov_name = response['Item']['tarkov_name']
+            tarkov_name = response['Item']['tarkov_name'].lower()
             logger.info("Pulled tarkov username {} for discord user {}".format(tarkov_name, member.name))
         except ClientError as e:
             logger.error(e.response['Error']['Message'])
