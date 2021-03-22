@@ -2,6 +2,7 @@ import cv2
 import pytesseract
 import logging
 import platform
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -48,22 +49,44 @@ def clahe(image):
     result2 = cv2.inpaint(image, mask2, 0.1, cv2.INPAINT_TELEA)
     return result2
 
+# Crop Image to only contain the names
+# Yea I realize I hardcored a bunch of magic numbers bite me I'm desparate at this point
+# Basically I assume the name is always near the center bottom of the screen so I crop towards there
+def crop(image):
+    height, width = image.shape[:2]
+    start_y = int(height*0.53)
+    end_y = int(height*0.58)
+    start_x = int(width*0.2)
+    end_x = width - start_x
+    cropped = image[start_y:end_y, start_x:end_x]
+    return cropped
+
+def sharpen(image):
+    # http://datahacker.rs/004-how-to-smooth-and-sharpen-an-image-in-opencv/
+    sharpen_array = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
+    return cv2.filter2D(image, -1, sharpen_array)
+
+def Otsu(image):
+    ret3, img = cv2.threshold(image, 0, 255,cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return img
+
 # Applies a series of filters to enhance OCR accuracy
 def preprocess(image):
+    cropped = crop(image)
     # upscale image for better OCR results
     scale_percent = 200 # percent of original size    
-    resized = scale_image(image, scale_percent)
+    resized = scale_image(cropped, scale_percent)
     # equalize image to reduce glare and glow
     equalized = clahe(resized)
     # grayscale image
     gray = grayscale(equalized)
-    # invert image
-    invertImg = cv2.bitwise_not(gray)
-    return invertImg
 
-# Grayscale then apply Otsu's threshold 
-# https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_thresholding/py_thresholding.html#otsus-binarization
-# thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    blurred_img = blur(gray)
+    sharpened_img = sharpen(blurred_img)
+    otsu_img = Otsu(sharpened_img)
 
-    # # Morph open to remove noise
-    # result = image_preprocessing.morph_open(thresh)
+    # OpenCV stores images as BGR by default and Pytessract uses RGB
+    img_rgb = cv2.cvtColor(otsu_img, cv2.COLOR_BGR2RGB)
+
+    return img_rgb
+

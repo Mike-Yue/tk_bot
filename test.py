@@ -23,7 +23,7 @@ username_filter = '|'.join(build_usernames(images))
 for image_path in images: 
     image = cv2.imread(image_path)
     image = image_preprocessing.preprocess(image)
-    text_results = pytesseract.image_to_string(image, lang='eng', config='--psm 11').casefold()
+    text_results = pytesseract.image_to_string(image, lang='eng').casefold()
     result = re.findall(username_filter, text_results, flags=re.IGNORECASE)
 
 

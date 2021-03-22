@@ -15,6 +15,7 @@ import numpy as np
 from botocore.exceptions import ClientError
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
+import pandas as pd
 
 load_dotenv(find_dotenv())
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -49,16 +50,19 @@ def tarkov_members():
         member_list.append(user.TarkovProfile(member, tarkov_name))
     return member_list
 
-async def message_validation(message):
+def message_validation(message):
+    print(message.content)
     if not client.user.mentioned_in(message):
         return
-    if message.attachments is None:
-        await message.channel.send("I can only understand images. Please upload an image of someone teamkilling you")
-        return
+    if len(message.attachments) == 0 and "!showstats" in message.content:
+        return "!showstats"
+    if len(message.attachments) == 1:
+        return "teamkill"
     if len(message.attachments) > 1:
-        await message.channel.send("Please only upload 1 image")
-        return
-    return message.attachments[0]
+        return "error"
+    return "error"
+
+    
 
 @client.event
 async def on_ready():
@@ -71,46 +75,60 @@ async def on_message(message):
     if message.author == client.user:
         return
     if message.channel.name == "bot-testing" or message.channel.name == "turkov":
-        validated_message = await message_validation(message)
-        if validated_message is None:
+        validated_message = message_validation(message)
+        if validated_message == "Error":
+            await message.channel.send("I didn't understand what you want to do. Please retry")
             return
-        
-        member_dict = {member.tarkov_name: member for member in tarkov_members()}
+        elif validated_message == "!showstats":
+            stats_dict = {}
+            for member in client.guilds[0].get_role(742241625727696957).members:
+                table = dynamodb.Table(str(member.id))
+                try:
+                    data = table.scan()
+                    stats_dict[member.name] = data['Count']
+                except ClientError as e:
+                    logger.error(e.response['Error']['Message'])
 
-        downloaded_img = await validated_message.save(str(cur_dir) + "/tmp/pic.png")
-        img = cv2.imread(str(cur_dir) + "/tmp/pic.png")
-        logger.info("Image loaded successfully")
+            df = pd.DataFrame.from_dict(stats_dict, orient='index', columns=["Team Kill Count"])
+            await message.channel.send(df.to_markdown(tablefmt="grid"))
+        elif validated_message == "teamkill":
+            member_dict = {member.tarkov_name: member for member in tarkov_members()}
 
-        # Preprocess image for increased accuracy
-        processed = image_preprocessing.preprocess(img)
+            downloaded_img = await message.attachments[0].save(str(cur_dir) + "/tmp/pic.png")
+            img = cv2.imread(str(cur_dir) + "/tmp/pic.png")
+            logger.info("Image loaded successfully")
 
-        # Save image for viewing purposes
-        cv2.imwrite(str(cur_dir) + "/tmp/processed.png", processed)
+            # Preprocess image for increased accuracy
+            processed = image_preprocessing.preprocess(img)
 
-        text = pytesseract.image_to_string(processed, lang='eng', config='--psm 11').casefold()
-        logger.info("{}: {}".format("Image to text dump", text))
+            # Save image for viewing purposes
+            cv2.imwrite(str(cur_dir) + "/tmp/processed.png", processed)
 
-        username_filter = '|'.join(member_dict.keys())
+            text = pytesseract.image_to_string(processed, lang='eng').casefold()
+            logger.info("{}: {}".format("Image to text dump", text))
 
-        names = re.findall(username_filter, text, flags=re.IGNORECASE)
+            username_filter = '|'.join(member_dict.keys())
 
-        if (len(names) == 2):  # [killer.tarkov_name, killee.tarkov_name]
-            confirmed_kill_text = "Confirmed: {} killed {}".format(names[0], names[1])
-            logger.info(confirmed_kill_text)
-            try:
-                table = dynamodb.Table(str(member_dict[names[0]].discord_id))
-                table.put_item(
-                    Item={
-                        'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                        'discord_id': member_dict[names[1]].discord_id, #Killee.discord_id 
-                        'tarkov_name': names[1] #Killee.tarkov_name
-                    }
-                )
-            except ClientError as e:
-                logger.error(e.response['Error']['Message'])
-            except Exception as e:
-                logger.error(e)
-            await message.channel.send(confirmed_kill_text)
+            names = re.findall(username_filter, text, flags=re.IGNORECASE)
+
+            if (len(names) == 2):  # [killer.tarkov_name, killee.tarkov_name]
+                confirmed_kill_text = "Confirmed: {} killed {}".format(names[0], names[1])
+                logger.info(confirmed_kill_text)
+                if message.channel.name == "turkov":
+                    try:
+                        table = dynamodb.Table(str(member_dict[names[0]].discord_id))
+                        table.put_item(
+                            Item={
+                                'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                                'discord_id': member_dict[names[1]].discord_id, #Killee.discord_id 
+                                'tarkov_name': names[1] #Killee.tarkov_name
+                            }
+                        )
+                    except ClientError as e:
+                        logger.error(e.response['Error']['Message'])
+                    except Exception as e:
+                        logger.error(e)
+                await message.channel.send(confirmed_kill_text)
 
 client.run(TOKEN)
 
