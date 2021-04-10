@@ -62,6 +62,12 @@ def message_validation(message):
         return "error"
     return "error"
 
+def format_stats(stats_dict):
+    max_len = max([len(x) for x in stats_dict.keys()]) + 2 # padding
+    rows = [f'{"Name": <{max_len}}' + "| Count"]
+    for label in stats_dict.keys():
+        rows.append('{name:{fill}{align}{width}}'.format(name=label, fill=' ',align='<',width=max_len) + "| " + str(stats_dict[label]))
+    return '\n'.join(rows)
     
 
 @client.event
@@ -89,8 +95,7 @@ async def on_message(message):
                 except ClientError as e:
                     logger.error(e.response['Error']['Message'])
 
-            df = pd.DataFrame.from_dict(stats_dict, orient='index', columns=["Team Kill Count"])
-            await message.channel.send(df.to_markdown(tablefmt="grid"))
+            await message.channel.send(format_stats(stats_dict))
         elif validated_message == "teamkill":
             member_dict = {member.tarkov_name: member for member in tarkov_members()}
 
